@@ -6,6 +6,11 @@
 <title>KARU — Creative Studio</title>
 <meta name="description" content="KARU is a creative studio based in Jakarta, Indonesia helping startups and small businesses grow to their full potential.">
 <meta name="theme-color" content="#e8570b">
+<script>
+  if (window.matchMedia && !matchMedia('(prefers-reduced-motion: reduce)').matches && Element.prototype.animate) {
+    document.documentElement.classList.add('motion-ready');
+  }
+</script>
 <style>
 @font-face {
   font-family: "KaruSans";
@@ -107,7 +112,6 @@ body {
   background: var(--ink); color: var(--white);
   text-decoration: none; z-index: 3;
   display: block;
-  transition: background-color .25s ease;
 }
 .cta__label {
   position: absolute; left: 24.5px; top: 20.6px;
@@ -118,9 +122,7 @@ body {
 .cta__icon {
   position: absolute; left: 310.0px; top: 22.0px;
   width: 16px; height: 16px; overflow: visible;
-  transition: transform .25s ease;
 }
-.cta:hover .cta__icon, .cta:focus-visible .cta__icon { transform: translate(2px, -2px); }
 .cta:hover { background: #111; }
 .cta:focus-visible { outline: 2px solid var(--white); outline-offset: 3px; }
 
@@ -172,7 +174,6 @@ body {
   background: rgba(255,255,255,0);
   -webkit-backdrop-filter: blur(0px); backdrop-filter: blur(0px);
   cursor: pointer; z-index: 4;
-  transition: background-color .25s ease, border-color .25s ease;
 }
 .menu i {
   position: absolute; left: 14.5px; width: 53.6px; height: 3.4px;
@@ -213,7 +214,16 @@ body {
 .is-portrait .cta { position: relative; width: 100%; height: 56px; margin-top: 18px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
 .is-portrait .cta__label { left: 22px; top: 50%; transform: translateY(-50%); line-height: 1; font-size: 16px; }
 .is-portrait .cta__icon { left: auto; right: 22px; top: 50%; margin-top: -7px; }
-.is-portrait .cta:hover .cta__icon { transform: translate(2px,-2px); }
+
+/* Initial states exist only while the one-time entrance is running. */
+.motion-ready .wordmark,
+.motion-ready .studio,
+.motion-ready .headline,
+.motion-ready .cta { opacity: 0; clip-path: inset(0 100% 0 0); }
+.motion-ready .figure { opacity: 0; transform: translate3d(0, 20px, 0); }
+.motion-ready .lede,
+.motion-ready .clock,
+.motion-ready .menu { opacity: 0; }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -303,7 +313,45 @@ body {
   if (!/[?&]static\b/.test(location.search) && window.Intl) {
     var fmt = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Jakarta' });
     var tick = function () { el.textContent = fmt.format(new Date()); el.setAttribute('datetime', new Date().toISOString()); };
-    tick(); setInterval(tick, 15000);
+    tick();
+  }
+
+  /* One coordinated entrance; cancelling its animations restores the exact CSS layout. */
+  if (root.classList.contains('motion-ready')) {
+    var ease = 'cubic-bezier(.22, 1, .36, 1)';
+    var animations = [];
+    function enter(selector, frames, start, duration) {
+      var node = document.querySelector(selector);
+      animations.push(node.animate(frames, { delay: start, duration: duration, easing: ease, fill: 'both' }));
+    }
+    enter('.wordmark', [
+      { opacity: 1, clipPath: 'inset(0 100% 0 0)' },
+      { opacity: 1, clipPath: 'inset(0 0 0 0)' }
+    ], 0, 760);
+    enter('.figure', [
+      { opacity: 0, transform: 'translate3d(0, 20px, 0)' },
+      { opacity: 1, transform: 'none' }
+    ], 280, 1040);
+    enter('.clock', [{ opacity: 0 }, { opacity: 1 }], 420, 460);
+    enter('.menu', [{ opacity: 0 }, { opacity: 1 }], 480, 460);
+    enter('.studio', [
+      { opacity: 1, clipPath: 'inset(0 0 100% 0)' },
+      { opacity: 1, clipPath: 'inset(0 0 0 0)' }
+    ], 790, 700);
+    enter('.headline', [
+      { opacity: 1, clipPath: 'inset(0 0 100% 0)' },
+      { opacity: 1, clipPath: 'inset(0 0 0 0)' }
+    ], 990, 730);
+    enter('.lede', [{ opacity: 0 }, { opacity: 1 }], 1260, 500);
+    enter('.cta', [
+      { opacity: 1, clipPath: 'inset(0 100% 0 0)' },
+      { opacity: 1, clipPath: 'inset(0 0 0 0)' }
+    ], 1490, 540);
+    Promise.all(animations.map(function (animation) { return animation.finished; }))
+      .then(function () {
+        root.classList.remove('motion-ready');
+        animations.forEach(function (animation) { animation.cancel(); });
+      });
   }
 })();
 </script>
